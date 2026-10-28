@@ -3,6 +3,19 @@
 A roguelike / Battleship / retro-edutainment mashup, in plain C99 + Win32 GDI, built with gcc.
 One .exe, no dependencies beyond stock Windows DLLs. Full concept: `GAME_DESIGN.md`.
 
+## Screenshots
+
+| | |
+|---|---|
+| ![Program Manager](docs/screenshots/desktop.png) | ![Space Planning](docs/screenshots/placement.png) |
+| **Program Manager** | **Space Planning** |
+| ![Battle](docs/screenshots/battle.png) | ![Orientation tutorial](docs/screenshots/tutorial.png) |
+| **Battle** | **Orientation Video (tutorial)** |
+| ![Break Room shop](docs/screenshots/shop.png) | ![Elevator](docs/screenshots/elevator.png) |
+| **Break Room shop** | **Elevator briefing** |
+| ![Training quiz](docs/screenshots/quiz.png) | ![Arcade](docs/screenshots/arcade.png) |
+| **Mandatory Training** | **Break Room Arcade** |
+
 ## Run
 `HostileTakeover.exe` (64-bit) or `HostileTakeover32.exe`. Settings and the Hall of Fame live in `TAKEOVER.INI` next to the exe.
 
