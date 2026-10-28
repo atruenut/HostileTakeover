@@ -3,6 +3,10 @@
 A roguelike / Battleship / retro-edutainment mashup, in plain C99 + Win32 GDI, built with gcc.
 One .exe, no dependencies beyond stock Windows DLLs. Full concept: `GAME_DESIGN.md`.
 
+## Download
+
+Prebuilt Windows executables are in [`bin/`](bin/): `HostileTakeover.exe` (64-bit) and `HostileTakeover32.exe` (32-bit). No installer; just run it. They're not code-signed, so Windows SmartScreen may warn: choose *More info > Run anyway*. Saves and settings are written next to the exe.
+
 ## Screenshots
 
 | | |
