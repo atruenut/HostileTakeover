@@ -1,0 +1,6 @@
+*.exe
+*.o
+ht_test
+TAKEOVER.INI
+TAKEOVER.SAV
+build/
