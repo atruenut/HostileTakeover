@@ -240,7 +240,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show) {
     /* biggest whole-number scale whose window fits the work area (at least 1x) */
     frame_extra(style, &fx, &fy);
     SystemParametersInfo(SPI_GETWORKAREA, 0, &wa, 0);
-    for (sc = 1; (SCR_W * (sc + 1) + fx) <= (wa.right - wa.left) && (SCR_H * (sc + 1) + fy) <= (wa.bottom - wa.top); sc++) {}
+    sc = 1;   /* start at the game's native 640x480 */
     ww = SCR_W * sc + fx; wh = SCR_H * sc + fy;
     rc.left = wa.left + (wa.right - wa.left - ww) / 2; rc.top = wa.top + (wa.bottom - wa.top - wh) / 2;
     g_hwnd = CreateWindowA("HostileTakeoverWnd", "Hostile Takeover - The Office Warfare Simulator", style | WS_VISIBLE,

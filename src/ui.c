@@ -565,7 +565,8 @@ void desktop_draw(void) {
         if (i == 2 && !g_cfg.tut_seen && ((g_time / 500) & 1)) { gfx_rect(ir.x + 60, ir.y, 24, 11, C_RED); gfx_text_b(ir.x + 62, ir.y + 2, "NEW", C_WHITE); }
         if (ui_hover(ir) && g_press) { if (icon_sel == i || g_dbl) launch = i; icon_sel = i; }
     }
-    gfx_text(gc.x + 10, gc.y + gc.h - 14, "Click an icon, then click again (or press Enter) to run it.", C_GRAY);
+    gfx_text(gc.x + 10, gc.y + gc.h - 14, "Click an icon, then click again to run it.", C_GRAY);
+    if (ui_button(R(gc.x + gc.w - 126, gc.y + gc.h - 28, 118, 20), "Display Setup...", 1)) overlay(SC_DISPLAY);
     if (ui_key(KEY_RETURN) && icon_sel >= 0) launch = icon_sel;
     if (ui_key(KEY_LEFT) && icon_sel > 0) icon_sel--;
     if (ui_key(KEY_RIGHT) && icon_sel < 7) icon_sel++;
@@ -760,7 +761,7 @@ void display_draw(void) {
              gfx_rect(pv.x + 150, pv.y + 3, 140, pv.h - 6, C_TEAL); gfx_frame(pv.x + 150, pv.y + 3, 140, pv.h - 6, C_WHITE); gfx_text_c(R(pv.x + 150, pv.y, 140, pv.h), "GAME", C_WHITE, 1); }
       gfx_frame(pv.x - 1, pv.y - 1, pv.w + 2, pv.h + 2, C_BLACK); }
     gfx_text(c.x + 30, c.y + 296, "Your choices are remembered as the starting defaults next time.", C_GRAY);
-    if (ui_button_def(R(c.x + c.w - 118, c.y + c.h - 40, 100, 28), "Start!", 1) || ui_key(KEY_RETURN) || ui_key(KEY_ESC)) { cfg_save(); overlay_close(); }
+    if (ui_button_def(R(c.x + c.w - 118, c.y + c.h - 40, 100, 28), "Done", 1) || ui_key(KEY_RETURN) || ui_key(KEY_ESC)) { cfg_save(); overlay_close(); }
 }
 
 void hof_draw(void) {
@@ -820,8 +821,8 @@ void ht_init(unsigned int seed) {
     g_scr = SC_DESKTOP;
     game_load();
     audio_music(MUS_MENU, seed);
-    if (g_cfg.fullscreen) plat_set_fullscreen(1);   /* last used mode is pre-selected */
-    overlay(SC_DISPLAY);                            /* Display Setup is shown on every launch */
+    /* always launch windowed at native size; Display Setup is one click away on the desktop (and under Game) */
+    g_cfg.fullscreen = 0;
 }
 
 void ht_shutdown(void) {

@@ -650,7 +650,7 @@ void cfg_load(void) {
     int n;
     char *p, *line;
     memset(&g_cfg, 0, sizeof g_cfg);
-    g_cfg.sound = 1; g_cfg.music = 1; g_cfg.wallpaper = 0; g_cfg.pdiff = 2;
+    g_cfg.sound = 1; g_cfg.music = 1; g_cfg.wallpaper = 0; g_cfg.pdiff = 2; g_cfg.stretch = 1;
     snprintf(g_cfg.lastname, sizeof g_cfg.lastname, "Intern #4471");
     n = plat_load("TAKEOVER.INI", buf, (int)sizeof buf - 1);
     if (n <= 0) return;
