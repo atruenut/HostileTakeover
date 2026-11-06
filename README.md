@@ -49,4 +49,4 @@ F1 help · F2 sound · F9 BOSS KEY · F11 fullscreen. Right-click a cell to flag
 - Stan icon on the .exe (res/stan.ico, built via windres).
 
 ## Display options (v1.3)
-A Display Setup screen appears at launch (and under Game > Display Setup, F11 toggles full screen): choose **Windowed** or **Full Screen**, and what fills the space when the window is bigger than the game: an **Office Pattern** border (crisp whole-number scaling, carpet tiles with desk supplies) or **Stretch to Fit**. The window can't be made smaller than 640x480.
+A Display Setup screen appears at every launch (and under Game > Display Setup, F11 toggles full screen): choose **Windowed** or **Full Screen**, and what fills the space when the window is bigger than the game: an **Office Pattern** border (crisp whole-number scaling, carpet tiles with desk supplies) or **Stretch to Fit**. The window can't be made smaller than 640x480.

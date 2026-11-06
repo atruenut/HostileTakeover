@@ -668,7 +668,6 @@ void cfg_load(void) {
         else if (!strcmp(line, "tut")) g_cfg.tut_seen = atoi(p);
         else if (!strcmp(line, "full")) g_cfg.fullscreen = atoi(p) ? 1 : 0;
         else if (!strcmp(line, "stretch")) g_cfg.stretch = atoi(p) ? 1 : 0;
-        else if (!strcmp(line, "dontask")) g_cfg.dontask = atoi(p) ? 1 : 0;
         else if (!strcmp(line, "hs")) sscanf(p, "%d,%d,%d,%d,%d,%d,%d,%d", &g_cfg.hs[0], &g_cfg.hs[1], &g_cfg.hs[2], &g_cfg.hs[3], &g_cfg.hs[4], &g_cfg.hs[5], &g_cfg.hs[6], &g_cfg.hs[7]);
         else if (!strcmp(line, "name")) snprintf(g_cfg.lastname, sizeof g_cfg.lastname, "%s", p);
         else if (!strcmp(line, "hof") && g_cfg.n < HOF_N) {
@@ -690,7 +689,7 @@ void cfg_save(void) {
     char buf[4096];
     int len = 0, i;
     len += snprintf(buf + len, sizeof buf - (size_t)len, "sound=%d\nmusic=%d\nwallpaper=%d\nname=%s\n", g_cfg.sound, g_cfg.music, g_cfg.wallpaper, g_cfg.lastname);
-    len += snprintf(buf + len, sizeof buf - (size_t)len, "full=%d\nstretch=%d\ndontask=%d\n", g_cfg.fullscreen, g_cfg.stretch, g_cfg.dontask);
+    len += snprintf(buf + len, sizeof buf - (size_t)len, "full=%d\nstretch=%d\n", g_cfg.fullscreen, g_cfg.stretch);
     len += snprintf(buf + len, sizeof buf - (size_t)len, "pdiff=%d\npxp=%d,%d,%d,%d,%d\nprac=%d,%d,%d\ntut=%d\nhs=%d,%d,%d,%d,%d,%d,%d,%d\n", g_cfg.pdiff, g_cfg.pxp[0], g_cfg.pxp[1], g_cfg.pxp[2], g_cfg.pxp[3], g_cfg.pxp[4],
         g_cfg.pright, g_cfg.pwrong, g_cfg.pbest, g_cfg.tut_seen, g_cfg.hs[0], g_cfg.hs[1], g_cfg.hs[2], g_cfg.hs[3], g_cfg.hs[4], g_cfg.hs[5], g_cfg.hs[6], g_cfg.hs[7]);
     for (i = 0; i < g_cfg.n; i++) {

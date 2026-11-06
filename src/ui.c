@@ -759,11 +759,7 @@ void display_draw(void) {
              for (y = 0; y < pv.h; y++) for (x = 0; x < pv.w; x++) gfx_pixel(pv.x + x, pv.y + y, t[(y % BORDER_TILE) * BORDER_TILE + (x % BORDER_TILE)]);
              gfx_rect(pv.x + 150, pv.y + 3, 140, pv.h - 6, C_TEAL); gfx_frame(pv.x + 150, pv.y + 3, 140, pv.h - 6, C_WHITE); gfx_text_c(R(pv.x + 150, pv.y, 140, pv.h), "GAME", C_WHITE, 1); }
       gfx_frame(pv.x - 1, pv.y - 1, pv.w + 2, pv.h + 2, C_BLACK); }
-    { Rect cb = R(c.x + 30, c.y + 292, 14, 14);
-      gfx_rect(cb.x, cb.y, cb.w, cb.h, C_WHITE); gfx_frame(cb.x, cb.y, cb.w, cb.h, C_BLACK);
-      if (g_cfg.dontask) { gfx_line(cb.x + 3, cb.y + 7, cb.x + 6, cb.y + 10, C_BLACK); gfx_line(cb.x + 6, cb.y + 10, cb.x + 11, cb.y + 3, C_BLACK); }
-      gfx_text(cb.x + 22, cb.y + 3, "Don't show this at startup (use these settings every time)", C_BLACK);
-      if (g_press && ui_hover(R(cb.x, cb.y - 2, 420, 18))) g_cfg.dontask ^= 1; }
+    gfx_text(c.x + 30, c.y + 296, "Your choices are remembered as the starting defaults next time.", C_GRAY);
     if (ui_button_def(R(c.x + c.w - 118, c.y + c.h - 40, 100, 28), "Start!", 1) || ui_key(KEY_RETURN) || ui_key(KEY_ESC)) { cfg_save(); overlay_close(); }
 }
 
@@ -824,8 +820,8 @@ void ht_init(unsigned int seed) {
     g_scr = SC_DESKTOP;
     game_load();
     audio_music(MUS_MENU, seed);
-    if (g_cfg.dontask) { if (g_cfg.fullscreen) plat_set_fullscreen(1); }
-    else overlay(SC_DISPLAY);      /* first thing every launch: Display Setup */
+    if (g_cfg.fullscreen) plat_set_fullscreen(1);   /* last used mode is pre-selected */
+    overlay(SC_DISPLAY);                            /* Display Setup is shown on every launch */
 }
 
 void ht_shutdown(void) {

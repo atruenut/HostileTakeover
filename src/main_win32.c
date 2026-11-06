@@ -149,6 +149,7 @@ static void present(HDC dc) {
     cw = rc.right - rc.left; ch = rc.bottom - rc.top;
     if (cw <= 0 || ch <= 0) return;
     layout(cw, ch, &x, &y, &w, &h);
+    { static int last_stretch = -1; if (last_stretch != g_cfg.stretch) { last_stretch = g_cfg.stretch; g_full_repaint = 1; } }   /* margins must be repainted when the mode flips */
     if (!g_cfg.stretch && (x > 0 || y > 0) && g_full_repaint) {
         int s = w / SCR_W;
         if (!g_bgdc || g_bgw != cw || g_bgh != ch || g_bgx != x || g_bgy != y || g_bgs != s) bg_build(dc, cw, ch, x, y, s);

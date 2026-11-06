@@ -253,7 +253,7 @@ typedef struct { char name[24]; long score; int floor, career, won; unsigned int
 #define HOF_N 10
 typedef struct { HofEntry e[HOF_N]; int n; int sound, music, wallpaper, fast; char lastname[24];
     int pdiff, pxp[N_MODULE], pright, pwrong, pbest, tut_seen, hs[8];
-    int fullscreen, stretch, dontask; } Config;
+    int fullscreen, stretch; } Config;
 extern Config g_cfg;
 void cfg_load(void);
 void cfg_save(void);
