@@ -108,18 +108,26 @@ static void audio_stop(void) {
 }
 
 /* ------------------------------------------------------------------ drawing */
+/* Fit the 640x480 screen into the client area, keeping 4:3. The window is aspect-locked
+   (WM_SIZING), so in normal use the game fills the client with no black bars; bars only
+   appear when maximised on a screen that is not 4:3. */
+static void fit_rect(int cw, int ch, int *x, int *y, int *w, int *h) {
+    *w = cw; *h = cw * SCR_H / SCR_W;
+    if (*h > ch) { *h = ch; *w = ch * SCR_W / SCR_H; }
+    if (*w >= SCR_W && *w % SCR_W != 0) {      /* prefer crisp integer scale if it is nearly as big */
+        int s = *w / SCR_W;
+        if ((*w - s * SCR_W) * 10 < SCR_W) { *w = s * SCR_W; *h = s * SCR_H; }
+    }
+    *x = (cw - *w) / 2; *y = (ch - *h) / 2;
+}
+
 static void present(HDC dc) {
     RECT rc;
-    int cw, ch, scale, w, h, x, y;
+    int cw, ch, w, h, x, y;
     GetClientRect(g_hwnd, &rc);
     cw = rc.right - rc.left; ch = rc.bottom - rc.top;
     if (cw <= 0 || ch <= 0) return;
-    scale = MIN(cw / SCR_W, ch / SCR_H);
-    if (scale < 1) {            /* tiny window: fit, non-integer */
-        w = cw; h = cw * SCR_H / SCR_W;
-        if (h > ch) { h = ch; w = ch * SCR_W / SCR_H; }
-    } else { w = SCR_W * scale; h = SCR_H * scale; }
-    x = (cw - w) / 2; y = (ch - h) / 2;
+    fit_rect(cw, ch, &x, &y, &w, &h);
     if (x > 0 || y > 0) {       /* letterbox in black */
         HBRUSH b = (HBRUSH)GetStockObject(BLACK_BRUSH);
         RECT r1 = { 0, 0, cw, y }, r2 = { 0, y + h, cw, ch }, r3 = { 0, y, x, y + h }, r4 = { x + w, y, cw, y + h };
@@ -131,21 +139,40 @@ static void present(HDC dc) {
 
 static int to_logical(int *x, int *y) {
     RECT rc;
-    int cw, ch, scale, w, h, ox, oy;
+    int cw, ch, w, h, ox, oy;
     GetClientRect(g_hwnd, &rc);
     cw = rc.right; ch = rc.bottom;
     if (cw <= 0 || ch <= 0) return 0;
-    scale = MIN(cw / SCR_W, ch / SCR_H);
-    if (scale < 1) { w = cw; h = cw * SCR_H / SCR_W; if (h > ch) { h = ch; w = ch * SCR_W / SCR_H; } }
-    else { w = SCR_W * scale; h = SCR_H * scale; }
-    ox = (cw - w) / 2; oy = (ch - h) / 2;
+    fit_rect(cw, ch, &ox, &oy, &w, &h);
     *x = (*x - ox) * SCR_W / MAX(1, w);
     *y = (*y - oy) * SCR_H / MAX(1, h);
     return 1;
 }
 
+/* non-client size of a window with the given style */
+static void frame_extra(DWORD style, int *fx, int *fy) {
+    RECT r = { 0, 0, 0, 0 };
+    AdjustWindowRect(&r, style, FALSE);
+    *fx = r.right - r.left; *fy = r.bottom - r.top;
+}
+
 static LRESULT CALLBACK wndproc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
+    case WM_GETMINMAXINFO: {
+        MINMAXINFO *mm = (MINMAXINFO *)lp; int fx, fy;
+        frame_extra(WS_OVERLAPPEDWINDOW, &fx, &fy);
+        mm->ptMinTrackSize.x = SCR_W / 2 + fx; mm->ptMinTrackSize.y = SCR_H / 2 + fy;
+        return 0; }
+    case WM_SIZING: {            /* keep the client area exactly 4:3 so the game always fills the window */
+        RECT *r = (RECT *)lp; int fx, fy, cw, ch;
+        frame_extra(WS_OVERLAPPEDWINDOW, &fx, &fy);
+        cw = r->right - r->left - fx; ch = r->bottom - r->top - fy;
+        if (wp == WMSZ_TOP || wp == WMSZ_BOTTOM) { cw = ch * SCR_W / SCR_H; r->right = r->left + cw + fx; }
+        else {
+            ch = cw * SCR_H / SCR_W;
+            if (wp == WMSZ_TOPLEFT || wp == WMSZ_TOPRIGHT) r->top = r->bottom - ch - fy; else r->bottom = r->top + ch + fy;
+        }
+        return TRUE; }
     case WM_MOUSEMOVE: { int x = (short)LOWORD(lp), y = (short)HIWORD(lp); if (to_logical(&x, &y)) ht_mouse_move(x, y); return 0; }
     case WM_LBUTTONDOWN: { int x = (short)LOWORD(lp), y = (short)HIWORD(lp); if (to_logical(&x, &y)) ht_mouse_move(x, y); SetCapture(hwnd); ht_mouse_button(0, 1); return 0; }
     case WM_LBUTTONUP: { int x = (short)LOWORD(lp), y = (short)HIWORD(lp); if (to_logical(&x, &y)) ht_mouse_move(x, y); ht_mouse_button(0, 0); ReleaseCapture(); return 0; }
@@ -175,13 +202,15 @@ static LRESULT CALLBACK wndproc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
 int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show) {
     WNDCLASSA wc;
-    RECT rc = { 0, 0, SCR_W * 2, SCR_H * 2 };
+    RECT rc, wa;
     DWORD style = WS_OVERLAPPEDWINDOW;
+    int fx, fy, sc, ww, wh;
     MSG m;
     DWORD last, acc = 0;
     int i;
     (void)prev; (void)cmd;
     g_inst = inst;
+    { typedef BOOL (WINAPI *DpiFn)(void); DpiFn f = (DpiFn)(void *)GetProcAddress(GetModuleHandleA("user32.dll"), "SetProcessDPIAware"); if (f) f(); }  /* no blurry bitmap-scaling, true pixel sizes */
     memset(&g_bmi, 0, sizeof g_bmi);
     g_bmi.h.biSize = sizeof(BITMAPINFOHEADER); g_bmi.h.biWidth = SCR_W; g_bmi.h.biHeight = -SCR_H;
     g_bmi.h.biPlanes = 1; g_bmi.h.biBitCount = 8; g_bmi.h.biCompression = BI_RGB; g_bmi.h.biClrUsed = 16;
@@ -191,9 +220,14 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show) {
     wc.lpfnWndProc = wndproc; wc.hInstance = inst; wc.lpszClassName = "HostileTakeoverWnd";
     wc.hCursor = LoadCursor(NULL, IDC_ARROW); wc.hIcon = LoadIcon(inst, MAKEINTRESOURCE(1)); if (!wc.hIcon) wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
     RegisterClassA(&wc);
-    AdjustWindowRect(&rc, style, FALSE);
+    /* biggest whole-number scale whose window fits the work area (at least 1x) */
+    frame_extra(style, &fx, &fy);
+    SystemParametersInfo(SPI_GETWORKAREA, 0, &wa, 0);
+    for (sc = 1; (SCR_W * (sc + 1) + fx) <= (wa.right - wa.left) && (SCR_H * (sc + 1) + fy) <= (wa.bottom - wa.top); sc++) {}
+    ww = SCR_W * sc + fx; wh = SCR_H * sc + fy;
+    rc.left = wa.left + (wa.right - wa.left - ww) / 2; rc.top = wa.top + (wa.bottom - wa.top - wh) / 2;
     g_hwnd = CreateWindowA("HostileTakeoverWnd", "Hostile Takeover - The Office Warfare Simulator", style | WS_VISIBLE,
-                           CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, NULL, NULL, inst, NULL);
+                           rc.left, rc.top, ww, wh, NULL, NULL, inst, NULL);
     if (!g_hwnd) return 1;
     ShowWindow(g_hwnd, show);
     timeBeginPeriod(1);
