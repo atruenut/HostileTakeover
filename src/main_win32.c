@@ -125,8 +125,9 @@ static HDC g_bgdc; static HBITMAP g_bgbmp, g_bgold; static int g_bgw, g_bgh, g_b
 static unsigned char g_tile[BORDER_TILE * BORDER_TILE]; static int g_tile_ok;
 
 static void bg_build(HDC dc, int cw, int ch, int gx, int gy, int s) {
-    struct { BITMAPINFOHEADER h; RGBQUAD pal[16]; } tb = g_bmi;
+    struct { BITMAPINFOHEADER h; RGBQUAD pal[16]; } tb;
     int ts = BORDER_TILE * s, tx, ty;
+    memcpy(&tb, &g_bmi, sizeof tb);
     if (!g_tile_ok) { ht_border_tile(g_tile); g_tile_ok = 1; }
     if (g_bgdc) { SelectObject(g_bgdc, g_bgold); DeleteObject(g_bgbmp); DeleteDC(g_bgdc); }
     g_bgdc = CreateCompatibleDC(dc); g_bgbmp = CreateCompatibleBitmap(dc, cw, ch); g_bgold = (HBITMAP)SelectObject(g_bgdc, g_bgbmp);
