@@ -308,6 +308,8 @@ static int menu_build(int m, MItem *it) {
         it[n++] = (MItem){"Sound Effects", ACT_SND, 1, g_cfg.sound, 0};
         it[n++] = (MItem){"Music", ACT_MUS, 1, g_cfg.music, 0};
         it[n++] = (MItem){"Change Wallpaper", ACT_WALL, 1, 0, 0};
+        it[n++] = (MItem){"Full Screen      F11", ACT_FULL, 1, plat_is_fullscreen(), 0};
+        it[n++] = (MItem){"Display Setup...", ACT_DISPLAY, 1, 0, 0};
         it[n++] = (MItem){"", 0, 0, 0, 1};
         it[n++] = (MItem){"Back to Program Manager", ACT_DESKTOP, g_scr != SC_DESKTOP, 0, 0};
         it[n++] = (MItem){"Exit Windows...", ACT_EXIT, 1, 0, 0};
@@ -480,6 +482,8 @@ static void handle_action(int act) {
     case ACT_NEW: if (g_in_run) ui_dialog(DLG_ABANDON, "New Game", "Abandon your current career and start over?\nYour severance package will be $0.", 4, "OK", "Cancel", NULL); else scr_go(SC_NEWGAME); break;
     case ACT_TUT: if (!tut_active()) tut_start(); break;
     case ACT_ARCADE: if (!tut_active()) scr_go(SC_ARCADE); break;
+    case ACT_FULL: plat_fullscreen(); break;
+    case ACT_DISPLAY: overlay(SC_DISPLAY); break;
     case ACT_HOF: overlay(SC_HOF); break;
     case ACT_HELP: overlay(SC_HELP); break;
     case ACT_ABOUT: overlay(SC_ABOUT); break;
@@ -721,6 +725,48 @@ void about_draw(void) {
     if (ui_button_def(R(c.x + c.w - 98, c.y + c.h - 34, 84, 24), "OK", 1) || ui_key(KEY_RETURN) || ui_key(KEY_ESC)) overlay_close();
 }
 
+void display_draw(void) {
+    Rect c;
+    int i;
+    static const char *sn[2] = {"Windowed", "Full Screen"}, *bn[2] = {"Office Pattern", "Stretch to Fit"};
+    ui_desktop_bg();
+    c = ui_window(R(70, 50, 500, 380), "Display Setup", 1);
+    ui_stan(c.x + 14, c.y + 12, 1, 1);
+    gfx_text_b(c.x + 70, c.y + 14, "Welcome to Hostile Takeover!", C_NAVY);
+    gfx_text(c.x + 70, c.y + 30, "Pick how you'd like to play. You can change this any time:", C_BLACK);
+    gfx_text(c.x + 70, c.y + 42, "Game menu > Display Setup, or press F11 for full screen.", C_BLACK);
+    gfx_hline(c.x + 14, c.y + 64, c.w - 28, C_GRAY);
+    gfx_text_b(c.x + 20, c.y + 76, "1. Screen mode", C_MAROON);
+    for (i = 0; i < 2; i++) {
+        Rect r = R(c.x + 30 + i * 220, c.y + 94, 200, 34);
+        int sel = (plat_is_fullscreen() ? 1 : 0) == i;
+        if (sel) { gfx_rect(r.x, r.y, r.w, r.h, C_NAVY); gfx_frame(r.x, r.y, r.w, r.h, C_BLACK); gfx_text_c(r, sn[i], C_YELLOW, 1); }
+        else if (ui_button(r, sn[i], 1)) { plat_set_fullscreen(i); g_cfg.fullscreen = i; }
+    }
+    gfx_text(c.x + 30, c.y + 134, "Windowed can be resized (never smaller than the game's 640x480).", C_GRAY);
+    gfx_hline(c.x + 14, c.y + 156, c.w - 28, C_GRAY);
+    gfx_text_b(c.x + 20, c.y + 168, "2. When the window is bigger than the game", C_MAROON);
+    for (i = 0; i < 2; i++) {
+        Rect r = R(c.x + 30 + i * 220, c.y + 186, 200, 34);
+        int sel = (g_cfg.stretch ? 1 : 0) == i;
+        if (sel) { gfx_rect(r.x, r.y, r.w, r.h, C_NAVY); gfx_frame(r.x, r.y, r.w, r.h, C_BLACK); gfx_text_c(r, bn[i], C_YELLOW, 1); }
+        else if (ui_button(r, bn[i], 1)) g_cfg.stretch = i;
+    }
+    gfx_text(c.x + 30, c.y + 226, g_cfg.stretch ? "Stretch: the game fills the whole window (pixels get a bit soft)." : "Pattern: crisp whole-number scaling, office carpet fills the edges.", C_GRAY);
+    { Rect pv = R(c.x + 30, c.y + 246, 440, 30);
+      if (g_cfg.stretch) { gfx_rect(pv.x, pv.y, pv.w, pv.h, C_TEAL); gfx_frame(pv.x + 8, pv.y + 4, pv.w - 16, pv.h - 8, C_WHITE); gfx_text_c(R(pv.x, pv.y, pv.w, pv.h), "GAME", C_WHITE, 1); }
+      else { unsigned char t[BORDER_TILE * BORDER_TILE]; int x, y; ht_border_tile(t);
+             for (y = 0; y < pv.h; y++) for (x = 0; x < pv.w; x++) gfx_pixel(pv.x + x, pv.y + y, t[(y % BORDER_TILE) * BORDER_TILE + (x % BORDER_TILE)]);
+             gfx_rect(pv.x + 150, pv.y + 3, 140, pv.h - 6, C_TEAL); gfx_frame(pv.x + 150, pv.y + 3, 140, pv.h - 6, C_WHITE); gfx_text_c(R(pv.x + 150, pv.y, 140, pv.h), "GAME", C_WHITE, 1); }
+      gfx_frame(pv.x - 1, pv.y - 1, pv.w + 2, pv.h + 2, C_BLACK); }
+    { Rect cb = R(c.x + 30, c.y + 292, 14, 14);
+      gfx_rect(cb.x, cb.y, cb.w, cb.h, C_WHITE); gfx_frame(cb.x, cb.y, cb.w, cb.h, C_BLACK);
+      if (g_cfg.dontask) { gfx_line(cb.x + 3, cb.y + 7, cb.x + 6, cb.y + 10, C_BLACK); gfx_line(cb.x + 6, cb.y + 10, cb.x + 11, cb.y + 3, C_BLACK); }
+      gfx_text(cb.x + 22, cb.y + 3, "Don't show this at startup (use these settings every time)", C_BLACK);
+      if (g_press && ui_hover(R(cb.x, cb.y - 2, 420, 18))) g_cfg.dontask ^= 1; }
+    if (ui_button_def(R(c.x + c.w - 118, c.y + c.h - 40, 100, 28), "Start!", 1) || ui_key(KEY_RETURN) || ui_key(KEY_ESC)) { cfg_save(); overlay_close(); }
+}
+
 void hof_draw(void) {
     Rect c;
     int i;
@@ -778,6 +824,8 @@ void ht_init(unsigned int seed) {
     g_scr = SC_DESKTOP;
     game_load();
     audio_music(MUS_MENU, seed);
+    if (g_cfg.dontask) { if (g_cfg.fullscreen) plat_set_fullscreen(1); }
+    else overlay(SC_DISPLAY);      /* first thing every launch: Display Setup */
 }
 
 void ht_shutdown(void) {
@@ -838,6 +886,7 @@ void ht_frame(int dt) {
     case SC_HOF: hof_draw(); break;
     case SC_HELP: help_draw(); break;
     case SC_ABOUT: about_draw(); break;
+    case SC_DISPLAY: display_draw(); break;
     default: desktop_draw(); break;
     }
     if (modal) {

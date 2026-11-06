@@ -6,6 +6,8 @@ int plat_load(const char *f, char *b, int m) { FILE *fp = fopen(f, "rb"); int n;
 int plat_save(const char *f, const char *b, int l) { FILE *fp = fopen(f, "wb"); if (!fp) return -1; fwrite(b, 1, (size_t)l, fp); fclose(fp); return 0; }
 void plat_quit(void) {}
 void plat_fullscreen(void) {}
+int plat_is_fullscreen(void) { return 0; }
+void plat_set_fullscreen(int on) { (void)on; }
 unsigned int plat_time_ms(void) { return 0; }
 
 int ui_dbg_foe_px(int gx, int gy, int *px, int *py);
@@ -73,6 +75,7 @@ int main(int argc, char **argv) {
     int n;
     if (!in) { fprintf(stderr, "cannot open script\n"); return 1; }
     ht_init(1234);
+    scr_go(SC_DESKTOP);
     while (fgets(line, sizeof line, in)) {
         char cmd[32], a1[160]; int a, b, c2;
         cmd[0] = 0; a1[0] = 0;

@@ -7,6 +7,9 @@ void fx_float(int side, int x, int y, int color, const char *txt) { (void)side; 
 void fx_boom(int side, int x, int y, int kind) { (void)side; (void)x; (void)y; (void)kind; }
 void fx_banner(const char *txt) { (void)txt; }
 void fx_shake(int amt) { (void)amt; }
+int plat_is_fullscreen(void) { return 0; }
+void plat_set_fullscreen(int on) { (void)on; }
+void plat_fullscreen(void) {}
 int plat_load(const char *f, char *b, int m) { (void)f; (void)b; (void)m; return -1; }
 int plat_save(const char *f, const char *b, int l) { (void)f; (void)b; (void)l; return 0; }
 

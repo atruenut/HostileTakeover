@@ -4,10 +4,10 @@
 #include "ht.h"
 
 typedef enum { SC_DESKTOP, SC_NEWGAME, SC_ELEVATOR, SC_PLACE, SC_BATTLE, SC_REVIEW, SC_EVENT, SC_SHOP,
-               SC_DEAD, SC_WIN, SC_TRAIN, SC_HOF, SC_HELP, SC_ABOUT, SC_BOSSKEY, SC_TUTORIAL, SC_ARCADE, SC_GAME } Screen;
+               SC_DEAD, SC_WIN, SC_TRAIN, SC_HOF, SC_HELP, SC_ABOUT, SC_BOSSKEY, SC_TUTORIAL, SC_ARCADE, SC_GAME, SC_DISPLAY } Screen;
 
 /* menu actions */
-enum { ACT_NONE, ACT_NEW, ACT_HOF, ACT_SND, ACT_MUS, ACT_EXIT, ACT_HELP, ACT_ABOUT, ACT_QUITRUN, ACT_DESKTOP, ACT_WALL, ACT_TRAIN, ACT_TUT, ACT_ARCADE };
+enum { ACT_NONE, ACT_NEW, ACT_HOF, ACT_SND, ACT_MUS, ACT_EXIT, ACT_HELP, ACT_ABOUT, ACT_QUITRUN, ACT_DESKTOP, ACT_WALL, ACT_TRAIN, ACT_TUT, ACT_ARCADE, ACT_DISPLAY, ACT_FULL };
 
 /* input (per frame) */
 extern int g_mx, g_my, g_down, g_press, g_release, g_rpress, g_dbl;
@@ -58,6 +58,8 @@ void ui_raw_input(int *mx, int *my, int *press, int *release, int *down);
 void arcade_draw(void);
 void game_draw(void);
 void arcade_open(void);
+void display_draw(void);
+void display_open(void);
 
 /* drawing helpers */
 void ui_desktop_bg(void);

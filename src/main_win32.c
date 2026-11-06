@@ -68,7 +68,10 @@ void plat_fullscreen(void) {
         SetWindowPos(g_hwnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
         g_full = 0;
     }
+    g_cfg.fullscreen = g_full;
 }
+int plat_is_fullscreen(void) { return g_full; }
+void plat_set_fullscreen(int on) { if ((on ? 1 : 0) != g_full && g_hwnd) plat_fullscreen(); }
 
 /* ------------------------------------------------------------------ audio */
 static void audio_start(void) {
@@ -108,18 +111,35 @@ static void audio_stop(void) {
 }
 
 /* ------------------------------------------------------------------ drawing */
-/* Fit the 640x480 screen into the client area, keeping 4:3. The window is aspect-locked
-   (WM_SIZING), so in normal use the game fills the client with no black bars; bars only
-   appear when maximised on a screen that is not 4:3. */
-static void fit_rect(int cw, int ch, int *x, int *y, int *w, int *h) {
-    *w = cw; *h = cw * SCR_H / SCR_W;
-    if (*h > ch) { *h = ch; *w = ch * SCR_W / SCR_H; }
-    if (*w >= SCR_W && *w % SCR_W != 0) {      /* prefer crisp integer scale if it is nearly as big */
-        int s = *w / SCR_W;
-        if ((*w - s * SCR_W) * 10 < SCR_W) { *w = s * SCR_W; *h = s * SCR_H; }
-    }
-    *x = (cw - *w) / 2; *y = (ch - *h) / 2;
+/* Where the game is drawn inside the client area.
+   Pattern mode: whole-number scale only (crisp pixels), centred, office-carpet pattern fills the margins.
+   Stretch mode: the game fills the entire client area. */
+static void layout(int cw, int ch, int *x, int *y, int *w, int *h) {
+    if (g_cfg.stretch) { *x = *y = 0; *w = cw; *h = ch; return; }
+    { int s = MIN(cw / SCR_W, ch / SCR_H);
+      if (s < 1) s = 1;
+      *w = SCR_W * s; *h = SCR_H * s; *x = (cw - *w) / 2; *y = (ch - *h) / 2; }
 }
+
+static HDC g_bgdc; static HBITMAP g_bgbmp, g_bgold; static int g_bgw, g_bgh, g_bgx, g_bgy, g_bgs;
+static unsigned char g_tile[BORDER_TILE * BORDER_TILE]; static int g_tile_ok;
+
+static void bg_build(HDC dc, int cw, int ch, int gx, int gy, int s) {
+    struct { BITMAPINFOHEADER h; RGBQUAD pal[16]; } tb = g_bmi;
+    int ts = BORDER_TILE * s, tx, ty;
+    if (!g_tile_ok) { ht_border_tile(g_tile); g_tile_ok = 1; }
+    if (g_bgdc) { SelectObject(g_bgdc, g_bgold); DeleteObject(g_bgbmp); DeleteDC(g_bgdc); }
+    g_bgdc = CreateCompatibleDC(dc); g_bgbmp = CreateCompatibleBitmap(dc, cw, ch); g_bgold = (HBITMAP)SelectObject(g_bgdc, g_bgbmp);
+    tb.h.biWidth = BORDER_TILE; tb.h.biHeight = -BORDER_TILE;
+    SetStretchBltMode(g_bgdc, COLORONCOLOR);
+    /* tile anchored on the game's top-left corner so the pattern flows around it */
+    for (ty = gy % ts - ts; ty < ch; ty += ts)
+        for (tx = gx % ts - ts; tx < cw; tx += ts)
+            StretchDIBits(g_bgdc, tx, ty, ts, ts, 0, 0, BORDER_TILE, BORDER_TILE, g_tile, (BITMAPINFO *)&tb, DIB_RGB_COLORS, SRCCOPY);
+    g_bgw = cw; g_bgh = ch; g_bgx = gx; g_bgy = gy; g_bgs = s;
+}
+
+static int g_full_repaint = 1;
 
 static void present(HDC dc) {
     RECT rc;
@@ -127,12 +147,15 @@ static void present(HDC dc) {
     GetClientRect(g_hwnd, &rc);
     cw = rc.right - rc.left; ch = rc.bottom - rc.top;
     if (cw <= 0 || ch <= 0) return;
-    fit_rect(cw, ch, &x, &y, &w, &h);
-    if (x > 0 || y > 0) {       /* letterbox in black */
-        HBRUSH b = (HBRUSH)GetStockObject(BLACK_BRUSH);
-        RECT r1 = { 0, 0, cw, y }, r2 = { 0, y + h, cw, ch }, r3 = { 0, y, x, y + h }, r4 = { x + w, y, cw, y + h };
-        FillRect(dc, &r1, b); FillRect(dc, &r2, b); FillRect(dc, &r3, b); FillRect(dc, &r4, b);
+    layout(cw, ch, &x, &y, &w, &h);
+    if (!g_cfg.stretch && (x > 0 || y > 0) && g_full_repaint) {
+        int s = w / SCR_W;
+        if (!g_bgdc || g_bgw != cw || g_bgh != ch || g_bgx != x || g_bgy != y || g_bgs != s) bg_build(dc, cw, ch, x, y, s);
+        ExcludeClipRect(dc, x, y, x + w, y + h);
+        BitBlt(dc, 0, 0, cw, ch, g_bgdc, 0, 0, SRCCOPY);
+        SelectClipRgn(dc, NULL);
     }
+    g_full_repaint = 0;
     SetStretchBltMode(dc, COLORONCOLOR);
     StretchDIBits(dc, x, y, w, h, 0, 0, SCR_W, SCR_H, g_fb, (BITMAPINFO *)&g_bmi, DIB_RGB_COLORS, SRCCOPY);
 }
@@ -143,9 +166,10 @@ static int to_logical(int *x, int *y) {
     GetClientRect(g_hwnd, &rc);
     cw = rc.right; ch = rc.bottom;
     if (cw <= 0 || ch <= 0) return 0;
-    fit_rect(cw, ch, &ox, &oy, &w, &h);
+    layout(cw, ch, &ox, &oy, &w, &h);
     *x = (*x - ox) * SCR_W / MAX(1, w);
     *y = (*y - oy) * SCR_H / MAX(1, h);
+    *x = CLAMP(*x, 0, SCR_W - 1); *y = CLAMP(*y, 0, SCR_H - 1);
     return 1;
 }
 
@@ -161,18 +185,9 @@ static LRESULT CALLBACK wndproc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_GETMINMAXINFO: {
         MINMAXINFO *mm = (MINMAXINFO *)lp; int fx, fy;
         frame_extra(WS_OVERLAPPEDWINDOW, &fx, &fy);
-        mm->ptMinTrackSize.x = SCR_W / 2 + fx; mm->ptMinTrackSize.y = SCR_H / 2 + fy;
+        mm->ptMinTrackSize.x = SCR_W + fx; mm->ptMinTrackSize.y = SCR_H + fy;   /* never smaller than native */
         return 0; }
-    case WM_SIZING: {            /* keep the client area exactly 4:3 so the game always fills the window */
-        RECT *r = (RECT *)lp; int fx, fy, cw, ch;
-        frame_extra(WS_OVERLAPPEDWINDOW, &fx, &fy);
-        cw = r->right - r->left - fx; ch = r->bottom - r->top - fy;
-        if (wp == WMSZ_TOP || wp == WMSZ_BOTTOM) { cw = ch * SCR_W / SCR_H; r->right = r->left + cw + fx; }
-        else {
-            ch = cw * SCR_H / SCR_W;
-            if (wp == WMSZ_TOPLEFT || wp == WMSZ_TOPRIGHT) r->top = r->bottom - ch - fy; else r->bottom = r->top + ch + fy;
-        }
-        return TRUE; }
+    case WM_SIZE: g_full_repaint = 1; InvalidateRect(hwnd, NULL, FALSE); return 0;
     case WM_MOUSEMOVE: { int x = (short)LOWORD(lp), y = (short)HIWORD(lp); if (to_logical(&x, &y)) ht_mouse_move(x, y); return 0; }
     case WM_LBUTTONDOWN: { int x = (short)LOWORD(lp), y = (short)HIWORD(lp); if (to_logical(&x, &y)) ht_mouse_move(x, y); SetCapture(hwnd); ht_mouse_button(0, 1); return 0; }
     case WM_LBUTTONUP: { int x = (short)LOWORD(lp), y = (short)HIWORD(lp); if (to_logical(&x, &y)) ht_mouse_move(x, y); ht_mouse_button(0, 0); ReleaseCapture(); return 0; }
@@ -193,7 +208,7 @@ static LRESULT CALLBACK wndproc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         if (LOWORD(lp) == HTCLIENT && ht_cursor_hidden()) { SetCursor(NULL); return TRUE; }
         break;
     case WM_ERASEBKGND: return 1;
-    case WM_PAINT: { PAINTSTRUCT ps; HDC dc = BeginPaint(hwnd, &ps); present(dc); EndPaint(hwnd, &ps); return 0; }
+    case WM_PAINT: { PAINTSTRUCT ps; HDC dc = BeginPaint(hwnd, &ps); g_full_repaint = 1; present(dc); EndPaint(hwnd, &ps); return 0; }
     case WM_CLOSE: g_quit = 1; DestroyWindow(hwnd); return 0;
     case WM_DESTROY: g_quit = 1; PostQuitMessage(0); return 0;
     }

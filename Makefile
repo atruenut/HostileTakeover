@@ -1,7 +1,7 @@
 # HOSTILE TAKEOVER - build with MinGW gcc on Windows (mingw32-make) or cross-compile from Linux.
 SRCS = src/main_win32.c src/ui.c src/ui_battle.c src/ui_screens.c src/data.c src/board.c \
        src/battle.c src/quiz.c src/gfx.c src/font.c src/art.c src/audio.c \
-       src/ui_save.c src/ui_tutorial.c src/ui_games.c
+       src/ui_save.c src/ui_tutorial.c src/ui_games.c src/ui_border.c
 CFLAGS = -std=gnu99 -O2 -Wall -mwindows
 LIBS = -lwinmm -lgdi32 -luser32 -lm
 

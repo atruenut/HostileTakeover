@@ -252,7 +252,8 @@ const char *quip_lose(Rng *r);
 typedef struct { char name[24]; long score; int floor, career, won; unsigned int seed; } HofEntry;
 #define HOF_N 10
 typedef struct { HofEntry e[HOF_N]; int n; int sound, music, wallpaper, fast; char lastname[24];
-    int pdiff, pxp[N_MODULE], pright, pwrong, pbest, tut_seen, hs[8]; } Config;
+    int pdiff, pxp[N_MODULE], pright, pwrong, pbest, tut_seen, hs[8];
+    int fullscreen, stretch, dontask; } Config;
 extern Config g_cfg;
 void cfg_load(void);
 void cfg_save(void);
@@ -302,7 +303,11 @@ void audio_mix(short *out, int n);
 int  plat_load(const char *fname, char *buf, int max);   /* bytes read or -1 */
 int  plat_save(const char *fname, const char *buf, int len);
 void plat_quit(void);
-void plat_fullscreen(void);
+void plat_fullscreen(void);               /* toggle */
+int  plat_is_fullscreen(void);
+void plat_set_fullscreen(int on);
+#define BORDER_TILE 96
+void ht_border_tile(unsigned char *out);   /* BORDER_TILE^2 palette indices: the window-margin pattern */
 unsigned int plat_time_ms(void);
 
 /* ---------------------------------------------------------------- UI ENTRY */
